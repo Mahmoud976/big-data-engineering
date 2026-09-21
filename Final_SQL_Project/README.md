@@ -1,13 +1,8 @@
 # 🌐 Enterprise Smart Supply Chain & Logistics Management System
 
-# 🌐 Enterprise Smart Supply Chain & Logistics Management System
+[![Release](https://img.shields.io/github/v/release/Mahmoud976/big-data-engineering)](https://github.com/Mahmoud976/Custom-RTOS/releases/tag/v1.0.0)
 
-<div align="center">
-  <img src="https://shields.io" alt="SQL Server" />
-  <img src="https://shields.io" alt="Architecture" />
-  <img src="https://shields.io" alt="Isolation" />
-  <a href="./LICENSE"><img src="https://shields.io" alt="License" /></a>
-</div>
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
