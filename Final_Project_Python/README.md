@@ -1,6 +1,7 @@
 # 📊 Looker E-Commerce End-to-End Data Analysis
 
-[![Release](https://img.shields.io/github/v/release/Mahmoud976/big-data-engineering/Final_Project_Python)](https://github.com/Mahmoud976/big-data-engineering/releases/tag/v1.0.0)
+[![Release](https://img.shields.io/github/v/release/Mahmoud976/big-data-engineering)](https://github.com/Mahmoud976/big-data-engineering/releases/tag/v1.0.0)
+
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
