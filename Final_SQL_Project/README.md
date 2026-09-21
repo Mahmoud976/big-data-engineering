@@ -1,17 +1,18 @@
 # 🌐 Enterprise Smart Supply Chain & Logistics Management System
 
+# 🌐 Enterprise Smart Supply Chain & Logistics Management System
+
 <div align="center">
   <img src="https://shields.io" alt="SQL Server" />
   <img src="https://shields.io" alt="Architecture" />
   <img src="https://shields.io" alt="Isolation" />
-  <img src="https://shields.io" alt="License" />
+  <a href="./LICENSE"><img src="https://shields.io" alt="License" /></a>
 </div>
 
 ---
 
-## 🤵 Lead Database Engineer
-**Eng. Mahmoud Mohammed Saleh**  
-*Big Data Engineer Trainee at National Telecommunication Institute (NTI)*
+## 🤵 Eng. Mahmoud Mohammed Saleh 
+**Big Data Engineer Trainee at National Telecommunication Institute (NTI)**
 
 ---
 
