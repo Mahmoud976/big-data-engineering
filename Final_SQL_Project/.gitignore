@@ -1,0 +1,24 @@
+# SQL Server Management Studio (SSMS) temporary and layout files
+*.mdf
+*.ldf
+*.ndf
+*.bak
+*.trn
+*.sqlsuo
+*.ssms_useroptions
+*.ssms_workspace
+
+# VS Code & IDE environment configs
+.vscode/
+.idea/
+*.log
+
+# OS generated diagnostic extensions
+.DS_Store
+Thumbs.db
+
+# Backup or temporary document files
+~$*.docx
+~$*.xlsx
+~$*.pdf
+*.tmp
