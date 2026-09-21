@@ -1,15 +1,8 @@
 # 📊 Looker E-Commerce End-to-End Data Analysis
 
-<div align="center">
-  <a href="https://github.8com/Mahmoud976/big-data-engineering/releases">
-    <img src="https://shields.io" alt="Latest ETL Release" />
-  </a>
-  <a href="./LICENSE">
-    <img src="https://shields.io" alt="License" />
-  </a>
-  <img src="https://shields.io" alt="Python" />
-  <img src="https://shields.io" alt="Pandas" />
-</div>
+[![Release](https://img.shields.io/github/v/release/Mahmoud976/big-data-engineering/Final_Project_Python)](https://github.com/Mahmoud976/big-data-engineering/releases/tag/v1.0.0)
+
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## 👥 Team Members
 - **Ahmad Alaa Abdelaziz Mahmoud**
