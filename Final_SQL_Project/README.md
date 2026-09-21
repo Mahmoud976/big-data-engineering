@@ -1,17 +1,13 @@
 # 🌐 Enterprise Smart Supply Chain & Logistics Management System
 
-<div align="center">
-  <img src="https://shields.io" alt="SQL Server" />
-  <img src="https://shields.io" alt="Architecture" />
-  <img src="https://shields.io" alt="Isolation" />
-  <img src="https://shields.io" alt="License" />
-</div>
+[![Release](https://img.shields.io/github/v/release/Mahmoud976/big-data-engineering)](https://github.com/Mahmoud976/Custom-RTOS/releases/tag/v1.0.0)
+
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🤵 Lead Database Engineer
-**Eng. Mahmoud Mohammed Saleh**  
-*Big Data Engineer Trainee at National Telecommunication Institute (NTI)*
+## 🤵 Eng. Mahmoud Mohammed Saleh 
+**Big Data Engineer Trainee at National Telecommunication Institute (NTI)**
 
 ---
 
