@@ -1,0 +1,536 @@
+services:
+
+  # Group 1: core Hadoop storage and coordination
+  zookeeper:
+    image: fjardim/zookeeper
+    container_name: 01-01-zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    volumes:
+      - ./base/zookeeper:/opt/zookeeper-3.4.6/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.14
+
+  namenode:
+    image: fjardim/namenode_sqoop
+    container_name: 01-02-namenode
+    hostname: namenode
+    volumes:
+      - ./base/hdfs/namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    ports:
+      - "50070:50070"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.5
+
+  datanode1:
+    image: fjardim/datanode
+    container_name: 01-03-datanode1
+    hostname: datanode1
+    volumes:
+      - ./base/hdfs/datanode1:/hadoop/dfs/data
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070"
+    depends_on:
+      namenode:
+        condition: service_healthy
+    ports:
+      - "50075:50075"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.6
+
+  datanode2:
+    image: fjardim/datanode
+    container_name: 01-05-datanode2
+    hostname: datanode2
+    volumes:
+      - ./base/hdfs/datanode2:/hadoop/dfs/data
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070"
+    depends_on:
+      namenode:
+        condition: service_healthy
+    ports:
+      - "50080:50075"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.7
+
+  datanode3:
+    image: fjardim/datanode
+    container_name: 01-04-datanode3
+    hostname: datanode3
+    volumes:
+      - ./base/hdfs/datanode3:/hadoop/dfs/data
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070"
+    depends_on:
+      namenode:
+        condition: service_healthy
+    ports:
+      - "50085:50075"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.8
+
+  # Group 2: Hive query services
+  hive-metastore-postgresql:
+    image: fjardim/hive-metastore
+    container_name: 02-01-hive-metastore-postgresql
+    hostname: hive_metastore_postgresql
+    profiles: [hive-query]
+    volumes:
+      - ./base/postgresql:/var/lib/postgresql/data
+    depends_on:
+      datanode1:
+        condition: service_healthy
+      datanode2:
+        condition: service_healthy
+      datanode3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.11
+
+  hive-metastore:
+    image: fjardim/hive
+    container_name: 02-02-hive_metastore
+    hostname: hive_metastore
+    profiles: [hive-query]
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 hive-metastore-postgresql:5432"
+    ports:
+      - "9083:9083"
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode1:
+        condition: service_healthy
+      datanode2:
+        condition: service_healthy
+      datanode3:
+        condition: service_healthy
+      hive-metastore-postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc '</dev/tcp/127.0.0.1/9083'"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.10
+
+  hive-server:
+    image: fjardim/hive
+    container_name: 02-03-hive-server
+    hostname: hive_server
+    profiles: [hive-query]
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    ports:
+      - "10000:10000"
+    depends_on:
+      hive-metastore:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc '</dev/tcp/127.0.0.1/10000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.9
+
+  presto:
+    image: fjardim/prestodb
+    container_name: 02-04-presto
+    hostname: presto
+    profiles: [hive-query]
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      - "sed -i 's/-Xmx16G/-Xmx1G/' /opt/presto/etc/jvm.config && sed -i 's/query.max-memory=5GB/query.max-memory=1GB/' /opt/presto/etc/config.properties && sed -i 's/query.max-memory-per-node=1GB/query.max-memory-per-node=512MB/' /opt/presto/etc/config.properties && exec /opt/presto/bin/launcher run"
+    volumes:
+      - ./base/hadoop:/etc/hadoop/conf:ro
+    ports:
+      - "18080:8080"
+    depends_on:
+      hive-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.16
+        aliases:
+          - presto-coordinator
+
+  # Group 3: Hue and its application database
+  hue:
+    image: fjardim/hue
+    container_name: 03-01-hue
+    hostname: hue
+    profiles: [hue]
+    dns: 8.8.8.8
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./base/hue/hue-overrides.ini:/usr/share/hue/desktop/conf/z-hue.ini
+    depends_on:
+      hue_metadata_database:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.12
+
+  hue_metadata_database:
+    image: fjardim/mysql
+    container_name: 03-02-hue_metadata_database
+    hostname: hue_metadata_database
+    profiles: [hue]
+    ports:
+      - "33061:3306"
+    command: mysqld --innodb-flush-method=O_DSYNC --innodb-use-native-aio=OFF --init-file /data/application/init.sql
+    volumes:
+      - ./base/mysql/data:/var/lib/mysql
+      - ./base/mysql/init.sql/mysql-init.sql:/data/application/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -psecret --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    environment:
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: hue
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.13
+
+  # Group 4: notebooks and stream processing
+  jupyter-spark:
+    build:
+      context: ./base/jupyter
+      dockerfile: Dockerfile
+    hostname: jupyter-spark
+    container_name: 04-01-jupyter-spark
+    profiles: [notebooks-stream-processing]
+    command: notebook
+    env_file:
+      - ./base/jupyter/jupyter.env
+    ports:
+      - "8889:8889"
+      - "4040:4040"
+      - "4041:4041"
+      - "4042:4042"
+      - "4043:4043"
+    volumes:
+      - ./base/notebooks:/mnt/notebooks/
+    environment:
+      SPARK_MASTER: local[*]
+      JUPYTER_PORT: 8889
+      PYSPARK_PYTHON: /opt/anaconda3/bin/python3
+      PYSPARK_DRIVER_PYTHON: /opt/anaconda3/bin/python3
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.24
+
+  flink:
+    build:
+      context: ./base/flink
+      dockerfile: Dockerfile
+    container_name: 04-02-flink
+    hostname: flink
+    profiles: [notebooks-stream-processing]
+    command: jobmanager
+    ports:
+      - "8082:8081"
+      - "6123:6123"
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink
+      PYFLINK_CLIENT_EXECUTABLE: /usr/bin/python3
+      PYFLINK_PYTHON: /usr/bin/python3
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/overview >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.25
+
+  flink-taskmanager:
+    build:
+      context: ./base/flink
+      dockerfile: Dockerfile
+    container_name: 04-03-flink-taskmanager
+    hostname: flink-taskmanager
+    profiles: [notebooks-stream-processing]
+    command: taskmanager
+    depends_on:
+      flink:
+        condition: service_healthy
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink
+      TASK_MANAGER_NUMBER_OF_TASK_SLOTS: 2
+      PYFLINK_CLIENT_EXECUTABLE: /usr/bin/python3
+      PYFLINK_PYTHON: /usr/bin/python3
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.28
+
+  # Group 5: HBase
+  hbase-master:
+    image: fjardim/hbase-master
+    container_name: 05-01-hbase-master
+    hostname: hbase-master
+    profiles: [hbase]
+    env_file:
+      - ./base/hbase/hbase-standalone.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075 datanode3:50075 zookeeper:2181"
+    ports:
+      - "16010:16010"
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode1:
+        condition: service_healthy
+      datanode2:
+        condition: service_healthy
+      datanode3:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.17
+
+  # Group 6: ingestion tools
+  sqoop:
+    build:
+      context: ./base/sqoop
+    container_name: 06-01-sqoop
+    hostname: sqoop
+    profiles: [data-ingestion]
+    working_dir: /opt/sqoop-work
+    command: ["tail", "-f", "/dev/null"]
+    healthcheck:
+      disable: true
+    env_file:
+      - ./base/hadoop/hadoop-hive.env
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode1:
+        condition: service_healthy
+      datanode2:
+        condition: service_healthy
+      datanode3:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.26
+
+  flume:
+    image: ksk124/flume:latest
+    container_name: 06-02-flume
+    hostname: flume
+    profiles: [data-ingestion]
+    command: flume
+    environment:
+      FLUME_AGENT_NAME: docker
+      FLUME_CONF_FILE: /etc/flume-ng/conf.empty/flume.conf
+      BIGTOP_DEFAULTS_DIR: /tmp/flume-defaults
+    volumes:
+      - ./base/flume/flume.conf:/etc/flume-ng/conf.empty/flume.conf:ro
+      - ./base/flume/lab_data:/var/log/flume_lab
+      - flume-state:/var/log/flume-ng
+    ports:
+      - "44444:44444"
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.27
+
+  # Group 7: Kafka and its management UI
+  kafka:
+    image: fjardim/kafka
+    container_name: 07-01-kafka
+    hostname: kafka
+    profiles: [kafka-monitoring]
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./base/kafka:/kafka/kafka-logs-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc '</dev/tcp/127.0.0.1/9092'"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.15
+
+  kafkamanager:
+    image: fjardim/kafkamanager
+    container_name: 07-02-kafkamanager
+    hostname: kafkamanager
+    profiles: [kafka-monitoring]
+    environment:
+      ZK_HOSTS: zookeeper:2181
+    ports:
+      - "9000:9000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.20
+
+  # Group 8: dashboards and analytics
+  metabase:
+    image: metabase/metabase:latest
+    container_name: 08-01-metabase
+    hostname: metabase
+    profiles: [analytics]
+    volumes:
+      - ./base/metabase/data:/metabase-data
+    environment:
+      MB_DB_FILE: "/metabase-data/metabase.db"
+      JAVA_OPTS: "-Xmx1536m"
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.21
+
+networks:
+  net_pet:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+
+volumes:
+  flume-state:

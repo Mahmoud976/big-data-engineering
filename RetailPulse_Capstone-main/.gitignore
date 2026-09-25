@@ -1,0 +1,26 @@
+# Python caches
+__pycache__/
+.pytest_cache/
+
+# Notebook-generated data
+**/.ipynb_checkpoints/
+
+# Runtime files
+*.log
+*.pid
+*.pid.lock
+*.seed
+*.lck
+*.tmp
+
+# Local environment and editor files
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+
+# Project-specific local artifacts
+base/flume/lab_data/*
+base/flink/lab.py
+base/flink/stream_simulator.py
